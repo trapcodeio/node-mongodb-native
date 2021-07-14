@@ -251,6 +251,7 @@ export class ClientSession extends TypedEventEmitter<ClientSessionEvents> {
   ): void | Promise<void> {
     if (typeof options === 'function') (callback = options), (options = {});
     const _options = options ?? ({} as EndSessionOptions);
+    if (_options.force == null) _options.force = true;
 
     return maybePromise(callback, done => {
       if (this.hasEnded) {
@@ -403,7 +404,6 @@ export class ClientSession extends TypedEventEmitter<ClientSessionEvents> {
   abortTransaction(): Promise<Document>;
   abortTransaction(callback: Callback<Document>): void;
   abortTransaction(callback?: Callback<Document>): Promise<Document> | void {
-    // if (this.isPinned) this.unpin();
     return maybePromise(callback, cb => endTransaction(this, 'abortTransaction', cb));
   }
 
@@ -465,6 +465,16 @@ export function maybeClearPinnedConnection(
 ): void {
   // unpin a connection if it has been pinned
   const conn = session[kPinnedConnection];
+  const error = options?.error;
+
+  if (
+    session.inTransaction() &&
+    error &&
+    error instanceof MongoError &&
+    error.hasErrorLabel('TransientTransactionError')
+  ) {
+    return;
+  }
 
   // NOTE: the spec talks about what to do on a network error only, but the tests seem to
   //       to validate that we don't unpin on _all_ errors?
@@ -673,9 +683,8 @@ function endTransaction(session: ClientSession, commandName: string, callback: C
 
   function commandHandler(e?: MongoError, r?: Document) {
     if (commandName !== 'commitTransaction') {
-      if (!session.loadBalanced) {
-        session.transaction.transition(TxnState.TRANSACTION_ABORTED);
-      } else {
+      session.transaction.transition(TxnState.TRANSACTION_ABORTED);
+      if (session.loadBalanced) {
         maybeClearPinnedConnection(session, { force: false });
       }
 
