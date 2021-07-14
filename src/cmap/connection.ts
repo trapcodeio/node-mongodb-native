@@ -17,7 +17,6 @@ import {
   HostAddress
 } from '../utils';
 import {
-  AnyError,
   MongoDriverError,
   MongoNetworkError,
   MongoNetworkTimeoutError,
@@ -40,7 +39,6 @@ import type { MongoCredentials } from './auth/mongo_credentials';
 import type { Stream } from './connect';
 import { applyCommonQueryOptions, getReadPreference, isSharded } from './wire_protocol/shared';
 import { ReadPreference, ReadPreferenceLike } from '../read_preference';
-import { isTransactionCommand } from '../transactions';
 import type { W, WriteConcern, WriteConcernOptions } from '../write_concern';
 import type { ServerApi, SupportedNodeConnectionOptions } from '../mongo_client';
 import { CancellationToken, TypedEventEmitter } from '../mongo_types';
@@ -371,7 +369,6 @@ export class Connection extends TypedEventEmitter<ConnectionEvents> {
 
     let clusterTime = this.clusterTime;
     let finalCmd = Object.assign({}, cmd);
-    const inTransaction = session && (session.inTransaction() || isTransactionCommand(finalCmd));
 
     if (this.serverApi) {
       const { version, strict, deprecationErrors } = this.serverApi;
@@ -424,25 +421,10 @@ export class Connection extends TypedEventEmitter<ConnectionEvents> {
       ? new Msg(cmdNs, finalCmd, commandOptions)
       : new Query(cmdNs, finalCmd, commandOptions);
 
-    const commandResponseHandler = inTransaction
-      ? (err?: AnyError, ...args: Document[]) => {
-          // We need to add a TransientTransactionError errorLabel, as stated in the transaction spec.
-          if (
-            err &&
-            err instanceof MongoNetworkError &&
-            !err.hasErrorLabel('TransientTransactionError')
-          ) {
-            err.addErrorLabel('TransientTransactionError');
-          }
-
-          return callback(err, ...args);
-        }
-      : callback;
-
     try {
-      write(this, message, commandOptions, commandResponseHandler);
+      write(this, message, commandOptions, callback);
     } catch (err) {
-      commandResponseHandler(err);
+      callback(err);
     }
   }
 
