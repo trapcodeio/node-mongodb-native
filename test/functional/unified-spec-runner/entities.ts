@@ -166,7 +166,7 @@ export class UnifiedMongoClient extends MongoClient {
 
 export class FailPointMap extends Map<string, Document> {
   async enableFailPoint(
-    addressOrClient: HostAddress | UnifiedMongoClient,
+    addressOrClient: string | HostAddress | UnifiedMongoClient,
     failPoint: Document
   ): Promise<Document> {
     let client: MongoClient;

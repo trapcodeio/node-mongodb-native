@@ -150,12 +150,12 @@ operations.set('assertSessionNotDirty', async ({ entities, operation }) => {
 
 operations.set('assertSessionPinned', async ({ entities, operation }) => {
   const session = entities.getEntity('session', operation.arguments.session);
-  expect(session.transaction.isPinned).to.be.true;
+  expect(session.isPinned).to.be.true;
 });
 
 operations.set('assertSessionUnpinned', async ({ entities, operation }) => {
   const session = entities.getEntity('session', operation.arguments.session);
-  expect(session.transaction.isPinned).to.be.false;
+  expect(session.isPinned).to.be.false;
 });
 
 operations.set('assertSessionTransactionState', async ({ entities, operation }) => {
@@ -377,11 +377,12 @@ operations.set('startTransaction', async ({ entities, operation }) => {
 
 operations.set('targetedFailPoint', async ({ entities, operation }) => {
   const session = entities.getEntity('session', operation.arguments.session);
-  expect(session.transaction.isPinned, 'Session must be pinned for a targetedFailPoint').to.be.true;
-  await entities.failPoints.enableFailPoint(
-    session.transaction._pinnedServer.s.description.hostAddress,
-    operation.arguments.failPoint
-  );
+  expect(session.isPinned, 'Session must be pinned for a targetedFailPoint').to.be.true;
+  const address = session.transaction.isPinned
+    ? session.transaction._pinnedServer.s.description.hostAddress
+    : session.pinnedConnection.address;
+
+  await entities.failPoints.enableFailPoint(address, operation.arguments.failPoint);
 });
 
 operations.set('delete', async ({ entities, operation }) => {
