@@ -1,6 +1,6 @@
 import { Callback, maybePromise, MongoDBNamespace, ns } from '../utils';
 import { Long, Document, BSONSerializeOptions, pluckBSONSerializeOptions } from '../bson';
-import { ClientSession } from '../sessions';
+import { ClientSession, maybeClearPinnedConnection } from '../sessions';
 import { AnyError, MongoDriverError, MongoNetworkError } from '../error';
 import { ReadPreference, ReadPreferenceLike } from '../read_preference';
 import type { Server } from '../sdam/server';
@@ -676,7 +676,7 @@ function next<T>(cursor: AbstractCursor, blocking: boolean, callback: Callback<T
       cursor[kInitialized] = true;
 
       if (err || cursorIsDead(cursor)) {
-        return cleanupCursor(cursor, undefined, () => callback(err, nextDocument(cursor)));
+        return cleanupCursor(cursor, { error: err }, () => callback(err, nextDocument(cursor)));
       }
 
       next(cursor, blocking, callback);
@@ -746,19 +746,31 @@ function cleanupCursor(
       cursor.emit(AbstractCursor.CLOSE);
     }
 
-    if (session && session.owner === cursor) {
-      return session.endSession({ error }, callback);
+    if (session) {
+      if (session.owner === cursor) {
+        return session.endSession({ error }, callback);
+      }
+
+      if (!session.inTransaction()) {
+        maybeClearPinnedConnection(session, { error });
+      }
     }
 
     return callback();
   }
 
   function completeCleanup() {
-    if (session && session.owner === cursor) {
-      return session.endSession({ error }, () => {
-        cursor.emit(AbstractCursor.CLOSE);
-        callback();
-      });
+    if (session) {
+      if (session.owner === cursor) {
+        return session.endSession({ error }, () => {
+          cursor.emit(AbstractCursor.CLOSE);
+          callback();
+        });
+      }
+
+      if (!session.inTransaction()) {
+        maybeClearPinnedConnection(session, { error });
+      }
     }
 
     cursor.emit(AbstractCursor.CLOSE);
