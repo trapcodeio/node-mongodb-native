@@ -8,11 +8,19 @@ const SKIP = [
   // a getMore before the killCursors even though the stream is immediately
   // closed.
   'change streams pin to a connection',
-  'errors during the initial connection hello are ignore'
+  'errors during the initial connection hello are ignore',
+
+  // NOTE: The following three tests are skipped pending a decision made on DRIVERS-1847, since
+  //       pinning the connection on any getMore error is very awkward in node and likely results
+  //       in sub-optimal pinning.
+  'pinned connections are not returned after an network error during getMore',
+  'pinned connections are not returned to the pool after a non-network error on getMore',
+  'stale errors are ignored'
 ];
 
 require('../functional/retryable_reads.test');
 require('../functional/retryable_writes.test');
+require('../functional/transactions.test');
 require('../functional/uri_options_spec.test');
 require('../functional/change_stream_spec.test');
 require('../functional/transactions.test');
