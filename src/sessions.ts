@@ -230,9 +230,7 @@ export class ClientSession extends TypedEventEmitter<ClientSessionEvents> {
   }
 
   get isPinned(): boolean {
-    return this.loadBalanced
-      ? !!this[kPinnedConnection]
-      : this.inTransaction() && this.transaction.isPinned;
+    return this.loadBalanced ? !!this[kPinnedConnection] : this.transaction.isPinned;
   }
 
   /**

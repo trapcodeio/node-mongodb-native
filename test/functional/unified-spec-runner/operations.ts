@@ -150,12 +150,12 @@ operations.set('assertSessionNotDirty', async ({ entities, operation }) => {
 
 operations.set('assertSessionPinned', async ({ entities, operation }) => {
   const session = entities.getEntity('session', operation.arguments.session);
-  expect(session.isPinned).to.be.true;
+  expect(session.isPinned, 'session should be pinned').to.be.true;
 });
 
 operations.set('assertSessionUnpinned', async ({ entities, operation }) => {
   const session = entities.getEntity('session', operation.arguments.session);
-  expect(session.isPinned).to.be.false;
+  expect(session.isPinned, 'session should be unpinned').to.be.false;
 });
 
 operations.set('assertSessionTransactionState', async ({ entities, operation }) => {
