@@ -509,6 +509,7 @@ function isPinnableCommand(cmd: Document, session?: ClientSession): boolean {
       'listIndexes' in cmd
     );
   }
+
   return false;
 }
 
@@ -595,7 +596,7 @@ function makeOperationHandler(
         }
       }
 
-      if (session && session.inTransaction() && err.hasErrorLabel('TransientTransactionError')) {
+      if (session && session.isPinned && err.hasErrorLabel('TransientTransactionError')) {
         session.unpin({ force: true });
       }
     }
