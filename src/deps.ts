@@ -18,13 +18,12 @@ function makeErrorModule(error: any) {
   });
 }
 
-export let Kerberos:
-  | typeof import('kerberos')
-  | { kModuleError: MongoMissingDependencyError } = makeErrorModule(
-  new MongoMissingDependencyError(
-    'Optional module `kerberos` not found. Please install it to enable kerberos authentication'
-  )
-);
+export let Kerberos: typeof import('kerberos') | { kModuleError: MongoMissingDependencyError } =
+  makeErrorModule(
+    new MongoMissingDependencyError(
+      'Optional module `kerberos` not found. Please install it to enable kerberos authentication'
+    )
+  );
 
 try {
   // Ensure you always wrap an optional require in the try block NODE-3199
@@ -41,9 +40,35 @@ export interface KerberosClient {
   unwrap: (challenge: string, callback?: Callback<string>) => Promise<string> | void;
 }
 
-export let Snappy:
-  | typeof import('snappy')
-  | { kModuleError: MongoMissingDependencyError } = makeErrorModule(
+type SnappyLib = {
+  /**
+   * - Snappy 6.x takes a callback and returns void
+   * - Snappy 7.x returns a promise
+   *
+   * In order to support both we must check the return value of the function
+   * @param buf - Buffer to be compressed
+   * @param callback - ONLY USED IN SNAPPY 6.x
+   */
+  compress(
+    buf: Buffer,
+    callback?: (error?: Error, buffer?: Buffer) => void
+  ): Promise<Buffer> | void;
+
+  /**
+   * - Snappy 6.x takes a callback and returns void
+   * - Snappy 7.x returns a promise
+   *
+   * In order to support both we must check the return value of the function
+   * @param buf - Buffer to be compressed
+   * @param callback - ONLY USED IN SNAPPY 6.x
+   */
+  uncompress(
+    buf: Buffer,
+    callback?: (error?: Error, buffer?: Buffer) => void
+  ): Promise<Buffer> | void;
+};
+
+export let Snappy: SnappyLib | { kModuleError: MongoMissingDependencyError } = makeErrorModule(
   new MongoMissingDependencyError(
     'Optional module `snappy` not found. Please install it to enable snappy compression'
   )
@@ -54,27 +79,25 @@ try {
   Snappy = require('snappy');
 } catch {} // eslint-disable-line
 
-export let saslprep:
-  | typeof import('saslprep')
-  | { kModuleError: MongoMissingDependencyError } = makeErrorModule(
-  new MongoMissingDependencyError(
-    'Optional module `saslprep` not found.' +
-      ' Please install it to enable Stringprep Profile for User Names and Passwords'
-  )
-);
+export let saslprep: typeof import('saslprep') | { kModuleError: MongoMissingDependencyError } =
+  makeErrorModule(
+    new MongoMissingDependencyError(
+      'Optional module `saslprep` not found.' +
+        ' Please install it to enable Stringprep Profile for User Names and Passwords'
+    )
+  );
 
 try {
   // Ensure you always wrap an optional require in the try block NODE-3199
   saslprep = require('saslprep');
 } catch {} // eslint-disable-line
 
-export let aws4:
-  | typeof import('aws4')
-  | { kModuleError: MongoMissingDependencyError } = makeErrorModule(
-  new MongoMissingDependencyError(
-    'Optional module `aws4` not found. Please install it to enable AWS authentication'
-  )
-);
+export let aws4: typeof import('aws4') | { kModuleError: MongoMissingDependencyError } =
+  makeErrorModule(
+    new MongoMissingDependencyError(
+      'Optional module `aws4` not found. Please install it to enable AWS authentication'
+    )
+  );
 
 try {
   // Ensure you always wrap an optional require in the try block NODE-3199
@@ -91,7 +114,8 @@ export const AutoEncryptionLoggerLevel = Object.freeze({
 } as const);
 
 /** @public */
-export type AutoEncryptionLoggerLevel = typeof AutoEncryptionLoggerLevel[keyof typeof AutoEncryptionLoggerLevel];
+export type AutoEncryptionLoggerLevel =
+  typeof AutoEncryptionLoggerLevel[keyof typeof AutoEncryptionLoggerLevel];
 
 /** @public */
 export interface AutoEncryptionOptions {
