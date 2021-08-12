@@ -82,6 +82,11 @@ export class MongoError extends Error {
   topologyVersion?: TopologyVersion;
 
   constructor(message: string | Error) {
+    if (message instanceof MongoError) {
+      super(message.message);
+      throw new Error(`ANDY - Wrapping here: ${this.stack}`);
+    }
+
     if (message instanceof Error) {
       super(message.message);
       this.stack = message.stack;
@@ -138,6 +143,11 @@ export class MongoServerError extends MongoError {
   writeConcernError?: Document;
 
   constructor(message: Error | ErrorDescription) {
+    if (message instanceof MongoError) {
+      super(message.message);
+      throw new Error(`ANDY - Wrapping here: ${this.stack}`);
+    }
+
     if (message instanceof Error) {
       super(message);
     } else {
